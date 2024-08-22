@@ -1,0 +1,41 @@
+{
+  "name": "sbt-aws-amberflo",
+  "version": "1.0.0",
+  "description": "Amberflo plugin for AWS SBT IMetering",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist/*",
+    "resources/*"
+  ],
+  "scripts": {
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "build": "tsc -p tsconfig-build.json",
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/amberflo/sbt-aws-amberflo.git"
+  },
+  "author": "Amberflo.io",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/amberflo/sbt-aws-amberflo/issues"
+  },
+  "homepage": "https://github.com/amberflo/sbt-aws-amberflo#readme",
+  "devDependencies": {
+    "@types/jest": "^29.5.12",
+    "@types/node": "^22.1.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.4",
+    "typescript": "^5.5.4"
+  },
+  "dependencies": {
+    "@cdklabs/sbt-aws": "^0.4.2",
+    "aws-cdk-lib": "2.150.0",
+    "aws-lambda-router": "^0.11.0",
+    "axios": "^0.21.2",
+    "constructs": "^10.0.0"
+  }
+}
