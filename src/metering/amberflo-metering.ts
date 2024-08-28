@@ -1,19 +1,27 @@
 import { Construct } from 'constructs';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
-import { aws_logs, Duration, Stack } from 'aws-cdk-lib';
+import { aws_logs as AwsLogs, Duration, Stack } from 'aws-cdk-lib';
+import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import * as sbt from '@cdklabs/sbt-aws';
 import * as path from 'path';
 
 export interface AmberfloMeteringProps {
     /**
-     * API Key from your Amberflo account.
+     * The name of the AWS Secrets Manager secret that contains the Amberflo API Key.
+     * This is the identifier for the secret in Secrets Manager.
      */
-    readonly amberfloAPIKey: string
+    readonly amberfloAPIKeySecretName?: string
+
+    /**
+     * The key within the AWS Secrets Manager secret that identifies the Amberflo API Key.
+     * This is the field name within the JSON structure of the secret.
+     */
+    readonly amberfloAPIKeySecretId?: string
 
     /**
      * Amberflo base url
      */
-    readonly amberfloBaseUrl: string
+    readonly amberfloBaseUrl?: string
 }
 
 export class AmberfloMetering extends Construct implements sbt.IMetering {
@@ -26,9 +34,13 @@ export class AmberfloMetering extends Construct implements sbt.IMetering {
     constructor(scope: Construct, id: string, props: AmberfloMeteringProps) {
         super(scope, id);
 
+        const amberfloAPIKeySecretName = props.amberfloAPIKeySecretName || 'AmberfloApiKey';
+        const amberfloAPIKeySecretId = props.amberfloAPIKeySecretId || 'AmberfloApiKey';
+        const amberfloBaseUrl = props.amberfloBaseUrl || 'https://app.amberflo.io';
+
         // https://docs.powertools.aws.dev/lambda/python/2.31.0/#lambda-layer
         const lambdaPowerToolsLayerARN = `arn:aws:lambda:${
-          Stack.of(this).region
+            Stack.of(this).region
         }:017000801446:layer:AWSLambdaPowertoolsPythonV2:59`;
 
         /**
@@ -40,23 +52,28 @@ export class AmberfloMetering extends Construct implements sbt.IMetering {
             handler: 'metering-service.handler',
             tracing: lambda.Tracing.ACTIVE,
             timeout: Duration.seconds(60),
-            logGroup: new aws_logs.LogGroup(this, 'LogGroup', {
-                retention: aws_logs.RetentionDays.FIVE_DAYS,
+            logGroup: new AwsLogs.LogGroup(this, 'LogGroup', {
+                retention: AwsLogs.RetentionDays.FIVE_DAYS,
             }),
             code: lambda.Code.fromAsset(path.resolve(__dirname, '../../resources/functions')), // Path to the directory containing your Lambda function code
             layers: [
                 lambda.LayerVersion.fromLayerVersionArn(this, 'LambdaPowerTools', lambdaPowerToolsLayerARN),
             ],
             environment: {
-                AMBERFLO_API_KEY: props.amberfloAPIKey,
-                AMBERFLO_BASE_URL: props.amberfloBaseUrl,
+                API_KEY_SECRET_NAME: amberfloAPIKeySecretName,
+                API_KEY_SECRET_ID: amberfloAPIKeySecretId,
+                AMBERFLO_BASE_URL: amberfloBaseUrl,
             },
         });
 
+        // grant permission to read amberfloAPIKey secret
+        const amberfloApiKeySecret = secretsmanager.Secret.fromSecretNameV2(this, 'AmberfloApiKeySecret', amberfloAPIKeySecretName);
+        amberfloApiKeySecret.grantRead(meteringService);
+
         this.createMeterFunction = meteringService;
+        this.updateMeterFunction = meteringService;
         this.ingestUsageEventFunction = meteringService;
         this.fetchUsageFunction = meteringService;
         this.cancelUsageEventsFunction = meteringService;
-        this.updateMeterFunction = meteringService;
     }
 }

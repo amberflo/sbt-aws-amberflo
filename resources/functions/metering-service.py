@@ -2,10 +2,14 @@ import os
 import http.client
 import json
 import time
+import boto3
 from aws_lambda_powertools import Logger, Tracer
 from aws_lambda_powertools.event_handler import APIGatewayHttpResolver
 from aws_lambda_powertools.event_handler.exceptions import BadRequestError
+from aws_lambda_powertools.event_handler.openapi.params import Path
 from aws_lambda_powertools.logging import correlation_paths
+from aws_lambda_powertools.shared.types import Annotated
+from botocore.exceptions import ClientError
 from http import HTTPStatus
 from urllib.parse import urlencode
 
@@ -14,8 +18,27 @@ logger = Logger()
 tracer = Tracer()
 
 # Fetch environment variables
-API_KEY = os.environ['AMBERFLO_API_KEY']
+API_KEY_SECRET_NAME = os.environ['API_KEY_SECRET_NAME']
+API_KEY_SECRET_ID = os.environ['API_KEY_SECRET_ID']
 BASE_URL = os.environ['AMBERFLO_BASE_URL']
+
+def fetch_api_key():
+    # Fetch the secret from AWS Secrets Manager
+    try:
+        secrets_client = boto3.client('secretsmanager')
+        response = secrets_client.get_secret_value(SecretId=API_KEY_SECRET_NAME)
+        if 'SecretString' in response:
+            return json.loads(response['SecretString'])[API_KEY_SECRET_ID]
+        else:
+            raise ClientError("SecretString not defined")
+    except KeyError as e:
+        logger.error("API key secret not defined")
+        raise
+    except ClientError as e:
+        logger.error(f'Error retrieving secret: {e}')
+        raise
+
+API_KEY = fetch_api_key()
 
 app = APIGatewayHttpResolver()
 
@@ -23,27 +46,34 @@ app = APIGatewayHttpResolver()
 @tracer.capture_method
 def create_meter():
     payload = app.current_event.json_body
-    print(json.dumps(payload))
     if not all(k in payload for k in ['label', 'meterApiName', 'meterType']):
         raise BadRequestError("Required properties missing for create meter")
     return make_api_call('POST', '/meters', payload)
 
-@app.put("/meters/meterId")
+@app.put("/meters/<meterId>")
 @tracer.capture_method
 def update_meter():
     payload = app.current_event.json_body
-    if not all(k in payload for k in ['id', 'label', 'meterApiName', 'meterType']):
+    if not all(k in payload for k in ['label', 'meterApiName', 'meterType']):
         raise BadRequestError("Required properties missing for update meter")
+    payload.setdefault('id', meterId)
     return make_api_call('PUT', '/meters', payload)
 
 @app.get("/usage/meterId")
 @tracer.capture_method
 def fetch_usage():
-    payload = app.current_event.json_body
-    if not all(k in payload for k in ['meterApiName', 'timeGroupingInterval', 'timeRange']):
-        raise BadRequestError("Required properties missing for usage request")
-    params = {'minimizeFresh': payload.get('minimizeFresh')} if 'minimizeFresh' in payload else None
-    return make_api_call('POST', '/usage', payload, params)
+    payload = app.current_event.query_string_parameters
+    if payload['meterApiName'] is None:
+        raise BadRequestError("meterApiName is required for fetching usage")
+
+    timeRange = {
+        'startTimeInSeconds': payload.get('startTimeInSeconds', int(time.time()) - (24 * 60 * 60)),
+        'endTimeInSeconds': payload.get('endTimeInSeconds', None)
+    }
+    payload.setdefault('timeGroupingInterval', 'DAY')
+    payload.setdefault('timeRange', timeRange)
+
+    return make_api_call('POST', '/usage', payload)
 
 @app.delete("/usage")
 @tracer.capture_method
@@ -71,7 +101,7 @@ def ingest(event):
 def make_api_call(method, path, payload, params=None, max_retries = 3):
     conn = http.client.HTTPSConnection(BASE_URL.replace('https://', ''), 443)
 
-    print(f'Making request to {method} {BASE_URL}{path}')
+    logger.info(f'Making request to {method} {BASE_URL}{path}')
 
     headers = {
         'Content-Type': 'application/json',
