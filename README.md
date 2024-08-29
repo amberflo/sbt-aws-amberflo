@@ -16,6 +16,10 @@ This repository provides a detailed implementation of the Amberflo metering serv
 
 Amberflo offers a robust platform for real-time tracking, metering and billing of usage events such as LLM tokens, API transactions, and consumption of compute, storage, and network resources, enabling precise billing based on actual usage. Whether you’re managing a subscription-based business model or billing customers per unique user, Amberflo’s billing cloud streamlines the invoicing process and integrates seamlessly with popular payment gateways like Stripe or ERP systems like Netsuite, ensuring smooth, automated customer invoicing and payment collection.
 
+<p align="center">
+  <img src="images/amberflo-metering.png" alt="Amberflo Metering" style="max-width: 100%; height: auto;">
+</p>
+
 With Amberflo, you can:
 - Create and manage meters for tracking usage
 - Ingest usage events in real-time
@@ -52,7 +56,7 @@ Here's a brief overview of how this works:
 ### Prerequisites
 
 1. **Deploy a SBT Project**: If you don't already have a SBT project deployed, follow [AWS SBT's tutorial](https://github.com/awslabs/sbt-aws/tree/main/docs/public) to deploy the sample `hello-cdk` project with a `ControlPlane` and `CoreApplicationPlane`.
-2. **Amberflo Account**: You need an Amberflo account. You can sign up for a trial on [Amberflo.io](https://www.amberflo.io/company/contact).
+2. **Amberflo Account**: You need an Amberflo account for this project. If you don’t have an Amberflo account, you can sign up for one here: [Amberflo Signup](https://www.amberflo.io/aws-saas-factory).
 3. **API Key Secret**: After signing up, the Amberflo API Key must be stored as a secret in AWS Secrets Manager. The application by default expects the secret to be created with the name `AmberfloApiKey`. However, you can create a secret with your own custom name and pass it in as a parameter to AmberfloMetering.
    
    - Secret Name: The name of the secret in AWS Secrets Manager (default: AmberfloApiKey).
@@ -139,8 +143,37 @@ curl --request PUT \
     --data "$UPDATE_METER" | jq
 ```
 
+### 5. Get a Meter
+You can get a meter by id using the provided API endpoint. Here’s how you can get a meter:
 
-### 5. Ingest Usage Events
+```bash
+curl --request GET \
+    --url "${CONTROL_PLANE_API_ENDPOINT}meters/<meterId>" \
+    --header "Authorization: Bearer ${ACCESS_TOKEN}" \
+    --silent | jq
+```
+
+### 6. List all Meters
+You can list all meters using the provided API endpoint. Here’s how you can list all meter:
+
+```bash
+curl --request GET \
+    --url "${CONTROL_PLANE_API_ENDPOINT}meters/<meterId>" \
+    --header "Authorization: Bearer ${ACCESS_TOKEN}" \
+    --silent | jq
+```
+
+### 7. Delete a Meter
+You can delete a meter by id using the provided API endpoint. Here’s how you can delete a meter:
+
+```bash
+curl --request DELETE \
+    --url "${CONTROL_PLANE_API_ENDPOINT}meters/<meterId>" \
+    --header "Authorization: Bearer ${ACCESS_TOKEN}" \
+    --silent | jq
+```
+
+### 8. Ingest Usage Events
 To ingest usage events, application or service in the application plane must emit events that represent usage metrics, which will be processed by the ingestUsageEventFunction Lambda function.
 
 Event details must contain the following required properties:
@@ -170,7 +203,7 @@ The ingestUsageEventFunction Lambda function will be triggered to handle this ev
 
 Note: the eventManager is the eventManager passed to the [CoreApplicationPlane](https://github.com/awslabs/sbt-aws/blob/main/src/core-app-plane/core-app-plane.ts#L12)
 
-### 6. Fetch Usage Data
+### 9. Fetch Usage Data
 To fetch usage data, use the API endpoint to retrieve data based on your meter API name:
 
 Example
@@ -181,14 +214,15 @@ START_TIME = 1724630400
 END_TIME = 1724716800
 
 curl --request GET \
-    --url "${CONTROL_PLANE_API_ENDPOINT}usage/meterId?meterApiName=${METER_API_NAME}&startTimeInSeconds=${START_TIME}&endTimeInSeconds=${END_TIME}" \
+    --url "${CONTROL_PLANE_API_ENDPOINT}usage/<meterId>?meterApiName=${METER_API_NAME}&startTimeInSeconds=${START_TIME}&endTimeInSeconds=${END_TIME}" \
     --header "Authorization: Bearer ${ACCESS_TOKEN}" \
     --silent | jq
 ```
 
-The meterApiName is a required query parameter for fetching usage. The startTimeInSeconds and endTimeInSeconds are optional and default to (current time - 24hrs) and current time.
+The meterApiName id not provided in the query string will be fetched using the meterId path parameter. 
+The startTimeInSeconds and endTimeInSeconds are optional and default to (current time - 24hrs) and current time.
 
-### 7. Cancelling incorrect usage events
+### 10. Cancelling incorrect usage events
 
 There are occasions where a meter event source may send or report incorrect or erroneous meters. Amberflo provides the ability to cancel (undo) one or more meter events as needed.
 See detailed [guide](https://docs.amberflo.io/docs/meter-events-cancellation) on canceling usage events.

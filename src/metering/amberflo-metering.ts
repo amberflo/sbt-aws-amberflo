@@ -26,10 +26,13 @@ export interface AmberfloMeteringProps {
 
 export class AmberfloMetering extends Construct implements sbt.IMetering {
     readonly createMeterFunction;
+    readonly fetchMeterFunction;
+    readonly fetchAllMetersFunction;
     readonly updateMeterFunction;
+    readonly deleteMeterFunction;
     readonly ingestUsageEventFunction;
-    readonly cancelUsageEventsFunction;
     readonly fetchUsageFunction;
+    readonly cancelUsageEventsFunction;
 
     constructor(scope: Construct, id: string, props: AmberfloMeteringProps) {
         super(scope, id);
@@ -66,14 +69,24 @@ export class AmberfloMetering extends Construct implements sbt.IMetering {
             },
         });
 
+        const meteringSyncFunction: sbt.ISyncFunction = {
+            handler: meteringService
+        };
+        const meteringAsyncFunction: sbt.IASyncFunction = {
+            handler: meteringService
+        };
+
         // grant permission to read amberfloAPIKey secret
         const amberfloApiKeySecret = secretsmanager.Secret.fromSecretNameV2(this, 'AmberfloApiKeySecret', amberfloAPIKeySecretName);
         amberfloApiKeySecret.grantRead(meteringService);
 
-        this.createMeterFunction = meteringService;
-        this.updateMeterFunction = meteringService;
-        this.ingestUsageEventFunction = meteringService;
-        this.fetchUsageFunction = meteringService;
-        this.cancelUsageEventsFunction = meteringService;
+        this.createMeterFunction = meteringSyncFunction;
+        this.fetchMeterFunction = meteringSyncFunction;
+        this.fetchAllMetersFunction = meteringSyncFunction;
+        this.updateMeterFunction = meteringSyncFunction;
+        this.deleteMeterFunction = meteringSyncFunction;
+        this.ingestUsageEventFunction = meteringAsyncFunction;
+        this.fetchUsageFunction = meteringAsyncFunction;
+        this.cancelUsageEventsFunction = meteringSyncFunction;
     }
 }
