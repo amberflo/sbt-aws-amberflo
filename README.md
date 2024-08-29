@@ -2,21 +2,19 @@
 
 ### Overview
 
-This module extends the AWS SaaS Builder Toolkit (SBT) to support metering through Amberflo.
+This module extends the AWS SaaS Builder ToolKit (SBT) by integrating Amberflo’s cloud native solution, enabling seamless metering, pricing, and billing of your customers' (tenants’) usage. With this integration, you can effortlessly implement a modern, usage-based billing for your SaaS and GenAI applications out-of-the-box.
 
-[AWS SaaS Builder Toolkit (SBT)](https://github.com/awslabs/sbt-aws) is an open-source developer toolkit to implement SaaS best practices. It provides reusable components for control plane and application plane concepts such as tenant and user management, billing, and metering.
+[AWS SaaS Builder Toolkit (SBT)](https://github.com/awslabs/sbt-aws) is an open-source developer toolkit to implement SaaS best practices. SBT attempts to codify several control plane and application plane concepts such as tenant and user management, billing, and onboarding into reusable components, promoting reuse and reducing boilerplate code.
+
 
 This repository provides a detailed implementation of the Amberflo metering service for use with the AWS SaaS Factory Software Builder Toolkit (SBT). The implementation enables Independent Software Vendors (ISVs) to integrate Amberflo with their SBT-based applications, allowing for accurate and efficient metering and usage tracking.
 
 
 ### What is Amberflo
 
-[Amberflo](https://docs.amberflo.io/docs/what-is-amberflo) is a cloud-based platform designed to help businesses implement and manage metering, usage-based billing, and analytics for their SaaS (Software as a Service) products and services. It offers solutions for tracking usage, generating invoices, and managing subscriptions based on how customers interact with your product. 
+[Amberflo](https://docs.amberflo.io/docs/what-is-amberflo) is a cloud-based platform designed to help businesses implement and manage metering, usage-based billing, and analytics for their SaaS (Software as a Service) products and services. 
 
-Amberflo is a platform that helps businesses track and monetize their usage-based offerings, such as:
-- API calls
-- resource consumption
-- Other custom usage metrics
+Amberflo offers a robust platform for real-time tracking, metering and billing of usage events such as LLM tokens, API transactions, and consumption of compute, storage, and network resources, enabling precise billing based on actual usage. Whether you’re managing a subscription-based business model or billing customers per unique user, Amberflo’s billing cloud streamlines the invoicing process and integrates seamlessly with popular payment gateways like Stripe or ERP systems like Netsuite, ensuring smooth, automated customer invoicing and payment collection.
 
 With Amberflo, you can:
 - Create and manage meters for tracking usage
