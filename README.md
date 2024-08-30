@@ -77,7 +77,7 @@ Instantiate the AmberfloMetering construct in your AWS CDK stack. Here’s an ex
 import { Stack } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as sbt from '@cdklabs/sbt-aws';
-import { AmberfloMetering } from 'amberflo-metering';
+import { AmberfloMetering } from 'sbt-aws-amberflo';
 
 export class ControlPlaneStack extends Stack {
   constructor(scope: Construct, id: string, props: any) {
