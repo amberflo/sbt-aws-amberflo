@@ -46,6 +46,11 @@ export class AmberfloMetering extends Construct implements sbt.IMetering {
             Stack.of(this).region
         }:017000801446:layer:AWSLambdaPowertoolsPythonV2:59`;
 
+        // https://repost.aws/questions/QUlA3-nvrmTbGpnnhE-vRf0g/python-layers-and-requests-import-module
+        const requestsModuleLayerARN = `arn:aws:lambda:${
+            Stack.of(this).region
+        }:770693421928:layer:Klayers-p312-requests:8`;
+
         /**
          * Creates the Amberflo Metering Lambda function.
          * The function is configured with the necessary environment variables,
@@ -61,6 +66,7 @@ export class AmberfloMetering extends Construct implements sbt.IMetering {
             code: lambda.Code.fromAsset(path.resolve(__dirname, '../../resources/functions')), // Path to the directory containing your Lambda function code
             layers: [
                 lambda.LayerVersion.fromLayerVersionArn(this, 'LambdaPowerTools', lambdaPowerToolsLayerARN),
+                lambda.LayerVersion.fromLayerVersionArn(this, 'requestsModule', requestsModuleLayerARN),
             ],
             environment: {
                 API_KEY_SECRET_NAME: amberfloAPIKeySecretName,
