@@ -1,8 +1,7 @@
 import boto3
-import gzip
-import http.client
 import json
 import os
+import requests
 import time
 from botocore.exceptions import ClientError
 from aws_lambda_powertools import Logger, Tracer
@@ -12,8 +11,8 @@ from aws_lambda_powertools.event_handler.openapi.params import Path
 from aws_lambda_powertools.logging import correlation_paths
 from aws_lambda_powertools.shared.types import Annotated
 from http import HTTPStatus
-from io import BytesIO
-from urllib.parse import urlencode
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 # Initialize logger and tracer
 logger = Logger()
@@ -23,6 +22,15 @@ tracer = Tracer()
 API_KEY_SECRET_NAME = os.environ['API_KEY_SECRET_NAME']
 API_KEY_SECRET_ID = os.environ['API_KEY_SECRET_ID']
 BASE_URL = os.environ['AMBERFLO_BASE_URL']
+
+session = requests.Session()
+retry = Retry(
+    total=3,  # Number of retries
+    backoff_factor=1,  # Delay between retries
+    status_forcelist=[500, 502, 503, 504]  # Retry on these status codes
+)
+adapter = HTTPAdapter(max_retries=retry)
+session.mount('https://', adapter)
 
 def fetch_api_key():
     # Fetch the secret from AWS Secrets Manager
@@ -56,13 +64,13 @@ def create_meter():
 @app.get("/meters/<meter_id>")
 @tracer.capture_method
 def fetch_meter(meter_id: Annotated[str, Path(min_length=1)]):
-    meter = make_api_call('GET', f'/meters/{meter_id}', None)
+    meter = make_api_call('GET', f'/meters/{meter_id}')
     return {'data': meter}, HTTPStatus.OK
 
 @app.get("/meters")
 @tracer.capture_method
 def fetch_all_meters():
-    meters = make_api_call('GET', '/meters', None)
+    meters = make_api_call('GET', '/meters')
     return {'data': meters}, HTTPStatus.OK
 
 @app.put("/meters/<meter_id>")
@@ -78,7 +86,7 @@ def update_meter(meter_id: Annotated[str, Path(min_length=1)]):
 @app.delete("/meters/<meter_id>")
 @tracer.capture_method
 def delete_meter(meter_id: Annotated[str, Path(min_length=1)]):
-    meter = make_api_call('DELETE', f'/meters/{meter_id}', None)
+    meter = make_api_call('DELETE', f'/meters/{meter_id}')
     return {'data': meter}, HTTPStatus.OK
 
 @app.get("/usage/<meter_id>")
@@ -128,33 +136,25 @@ def ingest(event):
         'meterApiName': detail['meterApiName'],
         'meterValue': detail['meterValue'],
         'meterTimeInMillis': int(round(time.time() * 1000)),
-        'dimensions': {k: v for k, v in detail.items() if k not in ['meterApiName', 'meterValue']}
+        'dimensions': {k: v for k, v in detail.items() if k not in ['tenantId', 'meterApiName', 'meterValue']}
     }
     return make_api_call('POST', '/ingest', meter_event)
 
 def decode_response_body(response):
     try:
-        if response.getheader('Content-Encoding') == 'gzip':
-            # Decompress the response
-            response_body = response.read()
-            with gzip.GzipFile(fileobj=BytesIO(response_body)) as gz:
-                response_body = gz.read().decode('utf-8')
-        else:
-            # Directly read and decode the response if not compressed
-            response_body = response.read().decode('utf-8')
-
+        response_body = response.text
         # Attempt to parse JSON from the response body
-        return json.loads(response_body) if response_body else {}
-    except json.JSONDecodeError:
-        return response_body
+        return response.json() if response_body else {}
+    except requests.exceptions.JSONDecodeError as e:
+        return response.text
     except Exception as e:
         logger.error(f'Error decoding response body: {e}')
         raise
 
 @tracer.capture_method
-def make_api_call(method, path, payload, params=None, max_retries = 3):
-    conn = http.client.HTTPSConnection(BASE_URL.replace('https://', ''), 443)
-    logger.info(f'Making request to {method} {BASE_URL}{path}')
+def make_api_call(method, path, payload=None, params=None):
+    url = f"{BASE_URL}{path}"
+    logger.info(f'Making request to {method} {url}')
 
     headers = {
         'Content-Type': 'application/json',
@@ -162,47 +162,25 @@ def make_api_call(method, path, payload, params=None, max_retries = 3):
         'x-api-key': API_KEY
     }
 
-    # serialize the request body
-    payload_str = json.dumps(payload) if payload else None
+    try:
+        response = session.request(method, url, json=payload, params=params, headers=headers)
 
-    # Append query parameters to the path if provided
-    if params is not None:
-        query_string = urlencode(params)
-        path = f"{path}?{query_string}"
+        # Log response status
+        logger.info(f'Response status: {response.status_code}')
 
-    # Retry HTTP requests up to 3 times
-    attempt = 1
-    while attempt <= max_retries:
-        try:
-            # Send the request
-            conn.request(method, path, payload_str, headers)
-            response = conn.getresponse()
+        # Read and decode the response body
+        response_body = decode_response_body(response)
+        logger.info(f'Response body: {response_body}')
 
-            # Log response status
-            logger.info(f'Response status: {response.status}')
+        if response.status_code >= 400 and response.status_code < 500:
+            raise BadRequestError(response_body)
 
-            # Read and decode the response body
-            response_body = decode_response_body(response)
-            logger.info(f'Response body: {response_body}')
-
-            # Check for HTTP error status
-            if response.status >= 400 and response.status < 500:
-                raise BadRequestError(response_body)
-            elif response.status >= 500:
-                raise RuntimeError(f"Server error {response.status}: {response_body}")
-
-            # Process the response and return the result
-            return response_body
-        except RuntimeError as e:
-            logger.error(f'Error: {e}')
-
-            # Increment attempt count and check retry logic
-            attempt += 1
-            if attempt <= max_retries:
-                logger.info(f'Retrying... Attempt {attempt}/{max_retries}')
-            else:
-                logger.error(f'Max retries reached. Raising exception.')
-                raise e
+        # Will raise an HTTPError for 4xx/5xx status codes
+        response.raise_for_status()
+        return response_body
+    except requests.HTTPError as http_err:
+        logger.error(f'Http error occurred: {http_err}')
+        raise RuntimeError(f"Server error {http_err.response.status_code}: {http_err.response.text}")
 
 @logger.inject_lambda_context(correlation_id_path=correlation_paths.API_GATEWAY_HTTP, log_event=True)
 @tracer.capture_lambda_handler
