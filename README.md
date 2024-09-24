@@ -122,7 +122,7 @@ curl --request POST \
     --data "$METER" | jq
 ```
 
-The above 3 properties are the required properties for creating a meter. You can also pass in additional properties while creating a meter. See more on [creating meters](https://docs.amberflo.io/reference/post_meters) in Amberflo.
+The above 3 properties are the required properties for creating a meter. You can also pass in additional properties while creating a meter. See more on [creating meters](https://docs.amberflo.io/reference/create-a-meter) in Amberflo.
 
 ### 4. Update a Meter
 Once you deploy your updated stack, you can update meters using the provided API endpoint. Here’s how you can update a meter:
@@ -201,7 +201,7 @@ const putEventsResponse = eventManager.eventBus.putEvents({
 ```
 The ingestUsageEventFunction Lambda function will be triggered to handle this event and send the data to Amberflo for processing.
 
-Note: the eventManager is the eventManager passed to the [CoreApplicationPlane](https://github.com/awslabs/sbt-aws/blob/main/src/core-app-plane/core-app-plane.ts#L12)
+Note: the eventManager is the eventManager passed to the [CoreApplicationPlane](https://github.com/awslabs/sbt-aws/blob/main/src/core-app-plane/core-app-plane.ts#L15)
 
 ### 9. Fetch Usage Data
 To fetch usage data, use the API endpoint to retrieve data based on your meter API name:
@@ -251,7 +251,7 @@ curl --request DELETE \
 The id, meterApiName and ingestionTimeRange are required parameters.
 
 The above command creates a filtering rule that cancels the events for the meter `sbt-trial` in the given time range. You can also cancel more specific events for specific tenant or based on specific dimensions etc.
-See the [Amberflo API](https://docs.amberflo.io/reference/post_payments-custom-filtering-rules) for more details.
+See the [Amberflo API](https://docs.amberflo.io/reference/create-or-update-a-filtering-rule) for more details.
 
 
 
