@@ -10,13 +10,13 @@ export interface AmberfloMeteringProps {
      * The name of the AWS Secrets Manager secret that contains the Amberflo API Key.
      * This is the identifier for the secret in Secrets Manager.
      */
-    readonly amberfloAPIKeySecretName?: string
+    readonly amberfloAPIKeySecretName: string
 
     /**
      * The key within the AWS Secrets Manager secret that identifies the Amberflo API Key.
      * This is the field name within the JSON structure of the secret.
      */
-    readonly amberfloAPIKeySecretId?: string
+    readonly amberfloAPIKeySecretId: string
 
     /**
      * Amberflo base url
@@ -37,8 +37,6 @@ export class AmberfloMetering extends Construct implements sbt.IMetering {
     constructor(scope: Construct, id: string, props: AmberfloMeteringProps) {
         super(scope, id);
 
-        const amberfloAPIKeySecretName = props.amberfloAPIKeySecretName || 'AmberfloApiKey';
-        const amberfloAPIKeySecretId = props.amberfloAPIKeySecretId || 'AmberfloApiKey';
         const amberfloBaseUrl = props.amberfloBaseUrl || 'https://app.amberflo.io';
 
         // https://docs.powertools.aws.dev/lambda/python/2.31.0/#lambda-layer
@@ -69,8 +67,8 @@ export class AmberfloMetering extends Construct implements sbt.IMetering {
                 lambda.LayerVersion.fromLayerVersionArn(this, 'requestsModule', requestsModuleLayerARN),
             ],
             environment: {
-                API_KEY_SECRET_NAME: amberfloAPIKeySecretName,
-                API_KEY_SECRET_ID: amberfloAPIKeySecretId,
+                API_KEY_SECRET_NAME: props.amberfloAPIKeySecretName,
+                API_KEY_SECRET_ID: props.amberfloAPIKeySecretId,
                 AMBERFLO_BASE_URL: amberfloBaseUrl,
             },
         });
@@ -83,7 +81,7 @@ export class AmberfloMetering extends Construct implements sbt.IMetering {
         };
 
         // grant permission to read amberfloAPIKey secret
-        const amberfloApiKeySecret = secretsmanager.Secret.fromSecretNameV2(this, 'AmberfloApiKeySecret', amberfloAPIKeySecretName);
+        const amberfloApiKeySecret = secretsmanager.Secret.fromSecretNameV2(this, 'AmberfloApiKeySecret', props.amberfloAPIKeySecretName);
         amberfloApiKeySecret.grantRead(meteringService);
 
         this.createMeterFunction = meteringSyncFunction;
