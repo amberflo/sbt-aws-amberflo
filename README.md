@@ -57,11 +57,19 @@ Here's a brief overview of how this works:
 
 1. **Deploy a SBT Project**: If you don't already have a SBT project deployed, follow [AWS SBT's tutorial](https://github.com/awslabs/sbt-aws/tree/main/docs/public) to deploy the sample `hello-cdk` project with a `ControlPlane` and `CoreApplicationPlane`.
 2. **Amberflo Account**: You need an Amberflo account for this project. If you don’t have an Amberflo account, you can sign up for one here: [Amberflo Signup](https://www.amberflo.io/aws-saas-factory).
-3. **API Key Secret**: After signing up, the Amberflo API Key must be stored as a secret in AWS Secrets Manager. The application by default expects the secret to be created with the name `AmberfloApiKey`. However, you can create a secret with your own custom name and pass it in as a parameter to AmberfloMetering.
+3. **API Key Secret**: After signing up, the Amberflo API Key must be stored as a secret in AWS Secrets Manager.
    
-   - Secret Name: The name of the secret in AWS Secrets Manager (default: AmberfloApiKey).
-   - Secret Key: The key within the secret JSON that contains the API Key (default: AmberfloApiKey).
+   - Secret Name: The name of the secret in AWS Secrets Manager.
+   - Secret KeyId: The key within the secret JSON that identifies the Amberflo API Key.
 
+   e.g. you have a secret named AmberfloApiKey in AWS Secrets manager with the following json
+
+   ```json lines
+   {"apiKey": "<api key from your amberflo account>"} 
+   ```
+   Pass the `AmberfloApiKey` to amberfloAPIKeySecretName and `apiKey` to amberfloAPIKeySecretId
+
+   
 ### 1. Install the NPM Package
 
 Within your SBT project directory, install `aws-sbt-amberflo` via the following command:
@@ -84,8 +92,8 @@ export class ControlPlaneStack extends Stack {
     super(scope, id, props);
 
     const amberfloMetering = new AmberfloMetering(this, 'AmberfloMetering', {
-      amberfloAPIKeySecretName: 'YourSecretName', // Default is 'AmberfloApiKey'
-      amberfloAPIKeySecretId: 'YourSecretId', // Default is 'AmberfloApiKey'
+      amberfloAPIKeySecretName: 'YourSecretName', 
+      amberfloAPIKeySecretId: 'YourSecretKeyId', 
     });
 
     const controlPlane = new sbt.ControlPlane(this, 'ControlPlane', {
@@ -97,11 +105,11 @@ export class ControlPlaneStack extends Stack {
 
 #### Amberflo Metering Properties
 
-| Property Name | Type | Required | Description | Default Value |
-|:-------------|:-----|:---------|:------------|:--------------|
-| amberfloAPIKeySecretName | string | Optional | The name of the AWS Secrets Manager secret. | AmberfloApiKey |
-| amberfloAPIKeySecretId | string | Optional | The key within the secret that identifies the Amberflo API Key. | AmberfloApiKey |
-| amberfloBaseUrl | string | Optional | The base URL for Amberflo's API. | https://app.amberflo.io |
+| Property Name | Type | Required | Description                                                     | Default Value |
+|:-------------|:-----|:---------|:----------------------------------------------------------------|:--------------|
+| amberfloAPIKeySecretName | string | Yes      | The name of the AWS Secrets Manager secret.                     |  |
+| amberfloAPIKeySecretId | string | Yes      | The key within the secret that identifies the Amberflo API Key. |  |
+| amberfloBaseUrl | string | Optional | The base URL for Amberflo's API.                                | https://app.amberflo.io |
 
 ### 3. Provision a Meter
 Once you deploy your updated stack, you can create and manage meters using the provided API endpoints. Here’s how you can create a meter:
