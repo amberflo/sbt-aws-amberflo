@@ -36,6 +36,7 @@ export class AmberfloMetering extends Construct implements sbt.IMetering {
 
     constructor(scope: Construct, id: string, props: AmberfloMeteringProps) {
         super(scope, id);
+        sbt.addTemplateTag(this, 'AmberfloMetering');
 
         const amberfloBaseUrl = props.amberfloBaseUrl || 'https://app.amberflo.io';
 
