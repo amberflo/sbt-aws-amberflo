@@ -4,7 +4,7 @@
 
 This module extends the AWS SaaS Builder ToolKit (SBT) by integrating Amberflo’s cloud native solution, enabling seamless metering, pricing, and billing of your customers' (tenants’) usage. With this integration, you can effortlessly implement a modern, usage-based billing for your SaaS and GenAI applications out-of-the-box.
 
-Sign up for your [free Amberflo Account](https://www.amberflo.io/aws-saas-factory?utm_source=github&utm_medium=web&utm_campaign=Fall-2024-SBT-Plugin&utm_id=SBT-Plugin) to start using the iMetering SBT plugin.
+Sign up for your [free Amberflo Account](https://ui.amberflo.io/signup) to start using the iMetering SBT plugin.
 
 [AWS SaaS Builder Toolkit (SBT)](https://github.com/awslabs/sbt-aws) is an open-source developer toolkit to implement SaaS best practices. SBT attempts to codify several control plane and application plane concepts such as tenant and user management, billing, and onboarding into reusable components, promoting reuse and reducing boilerplate code.
 
@@ -58,7 +58,7 @@ Here's a brief overview of how this works:
 ### Prerequisites
 
 1. **Deploy a SBT Project**: If you don't already have a SBT project deployed, follow [AWS SBT's tutorial](https://github.com/awslabs/sbt-aws/tree/main/docs/public) to deploy the sample `hello-cdk` project with a `ControlPlane` and `CoreApplicationPlane`.
-2. **Amberflo Account**: You need an Amberflo account for this project. If you don’t have an Amberflo account, you can sign up for one here: [Amberflo Signup](https://www.amberflo.io/aws-saas-factory?utm_source=github&utm_medium=web&utm_campaign=Fall-2024-SBT-Plugin&utm_id=SBT-Plugin).
+2. **Amberflo Account**: You need an Amberflo account for this project. If you don’t have an Amberflo account, you can sign up for one here: [Amberflo Signup](https://ui.amberflo.io/signup).
 3. **API Key Secret**: After signing up, the Amberflo API Key must be stored as a secret in AWS Secrets Manager.
    
    - Secret Name: The name of the secret in AWS Secrets Manager.
